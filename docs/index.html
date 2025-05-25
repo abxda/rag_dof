@@ -1,0 +1,868 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tutorial Proyecto DOF Scraper y RAG</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f9fafb; 
+        }
+        .slide {
+            background-color: #ffffff;
+            border-radius: 12px;
+            padding: 2rem; 
+            margin-bottom: 2rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            scroll-margin-top: 80px; 
+            position: relative; 
+            overflow: hidden; 
+        }
+        h1, h2, h3, h4 {
+            font-weight: 600;
+        }
+        h1 {
+            font-size: 2.5rem;
+            color: #1e3a8a; 
+            text-align: center;
+            margin-bottom: 1.5rem;
+        }
+        h2 { /* Tutorial Step Titles */
+            font-size: 2rem; 
+            color: #1e40af; 
+            margin-top: 1.5rem;
+            margin-bottom: 1.25rem;
+            border-bottom: 3px solid #60a5fa; 
+            padding-bottom: 0.75rem;
+        }
+        h3 { /* Sub-headings within tutorial steps / panel titles */
+            font-size: 1.5rem; /* Increased size */
+            color: #1d4ed8; 
+            margin-top: 1.25rem;
+            margin-bottom: 0.75rem;
+        }
+        h4 { /* Panel title specific style */
+            font-size: 1.3rem; 
+            color: #1e40af;
+            margin-bottom: 1rem;
+            border-bottom: 1px solid #93c5fd;
+            padding-bottom: 0.5rem;
+        }
+        p, li {
+            color: #374151; 
+            line-height: 1.7; /* Slightly increased line height */
+            margin-bottom: 1rem; /* Increased margin */
+        }
+        ol li, ul.concept-list li, .explanation-text ul li, .explanation-text ol li {
+             margin-bottom: 0.6rem; /* Slightly less margin for list items */
+        }
+        pre {
+            background-color: #1f2937; 
+            color: #d1d5db; 
+            padding: 1rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-size: 0.9em;
+            margin-top: 0.75rem;
+            margin-bottom: 1rem;
+        }
+        code.language-python, code.language-bash, code.language-env {
+            font-family: 'Consolas', 'Courier New', Courier, monospace; /* Monospaced font */
+        }
+        .emoji-title {
+            font-size: 1.5em;
+            margin-right: 0.5rem;
+        }
+        .concept-list li {
+            margin-bottom: 0.5rem;
+            padding-left: 1.75rem; /* Increased padding */
+            position: relative;
+        }
+        .concept-list li::before {
+            content: "💡";
+            position: absolute;
+            left: 0;
+            top: 2px; /* Adjusted for better alignment */
+            font-size: 1.1em;
+        }
+        .exercise, .tutorial-section { /* Added .tutorial-section for consistent styling */
+            background-color: #e0f2fe; 
+            border-left: 4px solid #38bdf8; 
+            padding: 1.25rem; /* Increased padding */
+            margin-top: 1.5rem; 
+            border-radius: 8px;
+        }
+        .exercise h3, .tutorial-section h3 { /* Target h3 within these blocks */
+            color: #0c4a6e; 
+            font-size: 1.3rem; /* Specific size for these titles */
+            margin-top: 0; /* Remove top margin for h3 inside these blocks */
+        }
+        .nav-menu {
+            position: sticky;
+            top: 0;
+            background-color: rgba(255, 255, 255, 0.98); 
+            padding: 1rem;
+            margin-bottom: 1.5rem; /* Increased margin */
+            z-index: 100; /* Ensure nav is on top */
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05); /* Softer shadow */
+            border-radius: 0 0 10px 10px; /* Rounded bottom corners */
+        }
+        .nav-menu ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 0.75rem; /* Increased gap */
+        }
+        .nav-menu a {
+            text-decoration: none;
+            color: #1e3a8a; /* Darker blue for better contrast */
+            padding: 0.6rem 1.2rem; /* Adjusted padding */
+            border-radius: 8px; /* More rounded */
+            transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out, transform 0.1s ease;
+            font-weight: 500;
+            display: inline-block; /* For transform */
+        }
+        .nav-menu a:hover {
+            background-color: #3b82f6; /* Brighter blue on hover */
+            color: #ffffff;
+            transform: translateY(-2px); /* Slight lift effect */
+        }
+
+        /* Panel Styles */
+        .code-explanation-panel {
+            position: fixed; /* Changed to fixed for viewport-relative positioning */
+            top: 0;
+            right: 0;
+            bottom: 0; 
+            width: 50%; /* Can be adjusted, e.g., md:w-2/5 lg:w-1/3 */
+            max-width: 600px; /* Max width for larger screens */
+            background-color: #f0f9ff; 
+            border-left: 3px solid #38bdf8; 
+            box-shadow: -8px 0 20px rgba(0,0,0,0.15); /* Enhanced shadow */
+            transform: translateX(100%);
+            transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1); /* Smoother transition */
+            z-index: 110; /* Higher z-index for fixed panel */
+            padding: 1.5rem;
+            padding-top: 4rem; 
+            overflow-y: auto;
+        }
+        .code-explanation-panel.active {
+            transform: translateX(0);
+        }
+        .explanation-text p, .explanation-text li {
+            font-size: 0.9rem; /* Slightly smaller for panel */
+            color: #1f2937; 
+        }
+        .explanation-text ol {
+            list-style-type: decimal;
+            margin-left: 1.5rem;
+        }
+         .explanation-text ul {
+            list-style-type: disc;
+            margin-left: 1.5rem;
+        }
+        .panel-close-btn { /* Renamed for clarity */
+            position: absolute;
+            top: 1rem; /* Adjusted position */
+            right: 1.5rem; /* Adjusted position */
+            background-color: #e0f2fe;
+            color: #0c4a6e;
+            border: none;
+            border-radius: 50%;
+            width: 36px; /* Fixed size */
+            height: 36px; /* Fixed size */
+            font-size: 24px; /* Larger icon */
+            line-height: 36px; /* Center icon */
+            text-align: center;
+            cursor: pointer;
+            transition: background-color 0.2s, color 0.2s;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .panel-close-btn:hover {
+            background-color: #bae6fd;
+            color: #075985;
+        }
+        .code-action-button { /* Common class for explain/run buttons */
+             margin-top: 0.75rem;
+             background-color: #0ea5e9; /* Sky blue */
+             color: white;
+             padding: 0.6rem 1.2rem;
+             border-radius: 6px;
+             transition: background-color 0.2s ease-in-out, transform 0.1s ease;
+             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+             font-weight: 500;
+             display: inline-flex; /* For icon alignment */
+             align-items: center;
+        }
+        .code-action-button:hover {
+            background-color: #0284c7; /* Darker sky blue */
+            transform: translateY(-1px);
+        }
+        .code-action-button .icon {
+            margin-right: 0.5rem;
+        }
+
+    </style>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body class="p-4 md:p-8">
+
+    <h1><span class="emoji-title">🚀</span>Tutorial Proyecto RAG-DOF: Del Scraping a la Respuesta Inteligente<span class="emoji-title">🇲🇽</span></h1>
+    <p class="text-center text-lg text-gray-600 mb-8">¡Hola! En este tutorial, vamos a construir un sistema completo de Generación Aumentada por Recuperación (RAG) desde cero. Extraeremos datos del Diario Oficial de la Federación (DOF) de México, los procesaremos, crearemos una base de datos de conocimiento y finalmente haremos preguntas a un modelo de lenguaje que usará esa base para responder.</p>
+
+    <nav class="nav-menu">
+        <ul>
+            <li><a href="#tutorial-paso0">Paso 0: Preparación</a></li>
+            <li><a href="#tutorial-paso1">Paso 1: API Groq</a></li>
+            <li><a href="#tutorial-paso2">Paso 2: Ollama</a></li>
+            <li><a href="#tutorial-paso3-intro">Paso 3: Ejecución</a></li>
+            <li><a href="#script1-exec">3.1: Script 1</a></li>
+            <li><a href="#script3-exec">3.2: Script 3</a></li>
+            <li><a href="#script4-exec">3.3: Script 4</a></li>
+            <li><a href="#script5-exec">3.4: Script 5</a></li>
+            <li><a href="#script6-exec">3.5: Script 6</a></li>
+            <li><a href="#script7-exec">3.6: Script 7</a></li>
+            <li><a href="#script8-exec">3.7: Script 8</a></li>
+            <li><a href="#script9-exec">3.8: Script 9</a></li>
+        </ul>
+    </nav>
+
+    <div id="tutorial-paso0" class="slide">
+        <h2><span class="emoji-title">📥</span> Paso 0: Descargar y Preparar el Proyecto</h2>
+        <div class="tutorial-section">
+            <h3>Requisitos Previos:</h3>
+            <ul class="list-disc list-inside ml-4">
+                <li>Windows con <strong>Miniforge</strong> instalado.</li>
+                <li>Un editor de código (como VS Code).</li>
+                <li>Acceso a Internet.</li>
+                <li><strong>Término de Búsqueda que Usaremos:</strong> <code>decreto</code> (para mantener la consistencia).</li>
+            </ul>
+        </div>
+
+        <h3 class="mt-6">1. Descargar el Proyecto:</h3>
+        <ul class="list-disc list-inside ml-4">
+            <li>Ve a la página de GitHub: <a href="https://github.com/abxda/rag_dof" target="_blank" class="text-blue-600 hover:underline">https://github.com/abxda/rag_dof</a></li>
+            <li>Haz clic en el botón verde que dice <strong><code>&lt; &gt; Code</code></strong>.</li>
+            <li>Selecciona <strong><code>Download ZIP</code></strong>.</li>
+            <li>Guarda el archivo ZIP (ej. <code>C:\proyectos\</code>) y descomprímelo. Renombra la carpeta resultante a <code>rag_dof</code>.</li>
+        </ul>
+
+        <h3 class="mt-4">2. Abrir la Carpeta del Proyecto en VS Code:</h3>
+        <ul class="list-disc list-inside ml-4">
+            <li>Abre VS Code.</li>
+            <li>Ve a <code>File > Open Folder...</code> y selecciona la carpeta <code>rag_dof</code>.</li>
+        </ul>
+
+        <h3 class="mt-4">3. Abrir una Terminal de Miniforge:</h3>
+        <ul class="list-disc list-inside ml-4">
+            <li>En Windows, busca y abre el "Miniforge Prompt".</li>
+            <li>Navega a la carpeta de tu proyecto. Ej:
+                <pre><code class="language-bash">cd C:\proyectos\rag_dof</code></pre>
+            </li>
+        </ul>
+
+        <h3 class="mt-4">4. Crear y Activar el Entorno Conda:</h3>
+        <p>Crearemos un entorno aislado para este proyecto.</p>
+        <pre><code class="language-bash">conda create --name rag_dof_env python=3.11 -y
+conda activate rag_dof_env</code></pre>
+        <p>Verás <code>(rag_dof_env)</code> al inicio de tu prompt.</p>
+
+        <h3 class="mt-4">5. Instalar Dependencias de Python:</h3>
+        <p>Con el entorno activo y en la carpeta del proyecto:</p>
+        <pre><code class="language-bash">pip install playwright groq python-dotenv tiktoken ollama numpy scikit-learn lancedb</code></pre>
+        <p><strong>Insight:</strong> <code>pip</code> instala las herramientas que nuestros scripts necesitarán: <code>playwright</code> (controlar navegador), <code>groq</code> (modelo de lenguaje), <code>python-dotenv</code> (claves secretas), <code>tiktoken</code> (contar "palabras" para IA), <code>ollama</code> (embeddings), <code>numpy</code> y <code>scikit-learn</code> (matemáticas), y <code>lancedb</code> (base de datos inteligente).</p>
+
+        <h3 class="mt-4">6. Instalar Navegadores para Playwright:</h3>
+        <pre><code class="language-bash">playwright install</code></pre>
+        <p>Esto podría tardar un poco.</p>
+    </div>
+
+    <div id="tutorial-paso1" class="slide">
+        <h2><span class="emoji-title">🔑</span> Paso 1: Configurar la API de Groq</h2>
+        <p>Groq nos dará acceso rápido a modelos de lenguaje grandes (LLMs). Necesitamos una cuenta y una clave API.</p>
+
+        <h3 class="mt-6">1. Crear una Cuenta en Groq:</h3>
+        <ul class="list-disc list-inside ml-4">
+            <li>Ve a <a href="https://console.groq.com/" target="_blank" class="text-blue-600 hover:underline">https://console.groq.com/</a>.</li>
+            <li>Regístrate para obtener una cuenta gratuita.</li>
+        </ul>
+
+        <h3 class="mt-4">2. Obtener una Clave API (API Key):</h3>
+        <ul class="list-disc list-inside ml-4">
+            <li>En la consola de Groq, busca "API Keys".</li>
+            <li>Crea una nueva clave API (ej. <code>rag_dof_key</code>).</li>
+            <li><strong>¡Copia la clave API inmediatamente!</strong> Se muestra solo una vez.</li>
+        </ul>
+
+        <h3 class="mt-4">3. Guardar la Clave API en el Proyecto:</h3>
+        <ul class="list-disc list-inside ml-4">
+            <li>En VS Code, en tu carpeta <code>rag_dof</code>, crea un archivo nuevo llamado exactamente <code>.env</code>.</li>
+            <li>Abre <code>.env</code> y escribe (reemplaza con tu clave):
+                <pre><code class="language-env">GROQ_API_KEY=gsk_TU_API_KEY_DE_GROQ_AQUI</code></pre>
+            </li>
+            <li>Guarda el archivo <code>.env</code>.</li>
+            <li><strong>MUY IMPORTANTE:</strong> El archivo <code>.gitignore</code> del proyecto ya debería ignorar <code>.env</code> para no subir tu clave secreta a GitHub. ¡Verifícalo!</li>
+        </ul>
+    </div>
+
+    <div id="tutorial-paso2" class="slide">
+        <h2><span class="emoji-title">⚙️</span> Paso 2: Instalar y Configurar Ollama (Para Embeddings Locales)</h2>
+        <p>Ollama nos permitirá ejecutar modelos de IA (para crear "embeddings" o representaciones numéricas de texto) en nuestra computadora.</p>
+
+        <h3 class="mt-6">1. Descargar Ollama para Windows:</h3>
+        <ul class="list-disc list-inside ml-4">
+            <li>Ve a <a href="https://ollama.com/download" target="_blank" class="text-blue-600 hover:underline">https://ollama.com/download</a>.</li>
+            <li>Descarga y ejecuta el instalador para Windows.</li>
+        </ul>
+
+        <h3 class="mt-4">2. Verificar que Ollama está Corriendo:</h3>
+        <p>Debería ejecutarse en segundo plano (busca un ícono en la bandeja del sistema).</p>
+
+        <h3 class="mt-4">3. Descargar el Modelo de Embedding <code>bge-m3</code>:</h3>
+        <p>Abre una terminal Miniforge (no necesitas estar en la carpeta del proyecto):</p>
+        <pre><code class="language-bash">ollama pull bge-m3</code></pre>
+        <p>Esto descargará el modelo <code>bge-m3</code> (aprox. 1.2GB).</p>
+        <p><strong>Insight:</strong> <code>bge-m3</code> crea "embeddings" (huellas digitales numéricas que capturan el significado del texto). Ollama lo hace disponible localmente.</p>
+
+        <h3 class="mt-4">4. Listar Modelos en Ollama (Opcional):</h3>
+        <p>Para confirmar:</p>
+        <pre><code class="language-bash">ollama list</code></pre>
+        <p>Deberías ver <code>bge-m3:latest</code>.</p>
+    </div>
+
+    <div id="tutorial-paso3-intro" class="slide">
+        <h2><span class="emoji-title">🚀</span> Paso 3: Ejecución de los Scripts del Proyecto (¡La Magia Comienza!)</h2>
+        <p>Ahora vamos a ejecutar los scripts en orden. Asegúrate de estar en la terminal de Miniforge, con el entorno <code>(rag_dof_env)</code> activo, y dentro de la carpeta <code>rag_dof</code> (o la subcarpeta donde estén los scripts, ej. <code>scripts/</code>. Asumiremos que están en la raíz de <code>rag_dof</code>).</p>
+    </div>
+
+    <div id="script1-exec" class="slide">
+        <h3><span class="emoji-title">🔩</span> 3.1 Ejecutando Script 1: Prueba de Playwright (<code>001_test_playwright.py</code>)</h3>
+        <p>Verifica que Playwright funciona.</p>
+        <pre><code class="language-bash">python 001_test_playwright.py</code></pre>
+        
+        <div class="tutorial-section">
+            <h3>Salida Esperada:</h3>
+            <p>Mensajes indicando que el módulo se importó, la API se inició, y Chromium se lanzó y cerró exitosamente.</p>
+            <h3>Insight:</h3>
+            <p>Este es nuestro "hola mundo" para la automatización del navegador. Si esto funciona, el scraping debería ir bien.</p>
+        </div>
+
+        <div class="mt-4">
+            <h4>💻 El Código (Resumen):</h4>
+            <pre><code class="language-python">
+from playwright.sync_api import sync_playwright
+# ... (import sys) ...
+def run_test():
+    # ... (print inicial) ...
+    try:
+        import playwright.sync_api # Verifica importación
+        # ... (más prints) ...
+    except ImportError:
+        # ... (mensaje de error) ...
+        return
+    # ... (lógica de playwright_instance y lanzamiento de browser) ...
+if __name__ == "__main__":
+    run_test()
+            </code></pre>
+            <button class="explain-code-btn code-action-button">
+                <span class="icon">📄</span> Ver Explicación Conceptual del Script 1
+            </button>
+        </div>
+        <div class="code-explanation-panel">
+            <button class="panel-close-btn" aria-label="Cerrar explicación">&times;</button>
+            <h4 class="text-xl font-semibold mb-4 mt-2 text-sky-700">Script 1: <code>001_test_playwright.py</code></h4>
+            <h3>🎯 Propósito General (Conceptual):</h3>
+            <p>Verificar la instalación y funcionalidad básica de Playwright.</p>
+            <h3>🤔 ¿Qué Hace Exactamente (Conceptual)?</h3>
+            <p>El script intenta importar Playwright, iniciar su API síncrona, lanzar un navegador Chromium en modo "headless", y luego cerrarlo.</p>
+            <h3>💡 Conceptos Clave a Explorar:</h3>
+            <ul class="concept-list">
+                <li>Automatización de Navegadores</li>
+                <li>Playwright: Introducción, características</li>
+                <li>Entornos Virtuales (Conda/venv)</li>
+                <li>Headless Browsing</li>
+                <li>Context Managers (<code>with ... as ...</code>)</li>
+                <li>Manejo Básico de Excepciones (<code>try-except</code>)</li>
+            </ul>
+            <h4 class="text-xl font-semibold mb-4 mt-2 text-sky-700">Explicación Detallada del Script 1:</h4>
+            <div class="explanation-text space-y-3">
+                <p>Este script sirve como una prueba de humo fundamental para el entorno de desarrollo...</p> </div>
+        </div>
+        <div class="exercise">
+            <h3>🚀 ¡A Programar!</h3>
+            <p>Ejecuta <code>python 001_test_playwright.py</code>. ¿Qué mensajes ves? Si hay errores, intenta solucionarlos. Haz clic en "Ver Explicación Conceptual" para entender más a fondo.</p>
+        </div>
+    </div>
+
+    <div id="script3-exec" class="slide">
+        <h3><span class="emoji-title">🔗</span> 3.2 Ejecutando Script 3: Recolección de URLs con Paginación (<code>003_dof_web_scraper_next.py</code>)</h3>
+        <p>Este script buscará "decreto" en el DOF y guardará hasta 50 URLs (configurable en el script) en <code>resultados_dof_paginado.csv</code>.</p>
+        <pre><code class="language-bash">python 003_dof_web_scraper_next.py</code></pre>
+        
+        <div class="tutorial-section">
+            <h3>Salida Esperada:</h3>
+            <p>Verás logs de navegación, procesamiento de páginas, y al final un mensaje de que se guardaron los enlaces. Se creará el archivo <code>resultados_dof_paginado.csv</code>.</p>
+            <h3>Insight:</h3>
+            <p>Playwright está buscando, haciendo clic en "siguiente", y extrayendo los links de los decretos. El resultado es una lista de URLs que procesaremos.</p>
+        </div>
+
+        <div class="mt-4">
+            <h4>💻 El Código (Resumen):</h4>
+            <pre><code class="language-python">
+import csv
+from playwright.sync_api import sync_playwright, Page
+# ... (imports: os, time, urljoin, typing) ...
+# ... (Constantes: BASE_URL, SELECTOR_SIGUIENTE_PAGINA, etc.) ...
+def extraer_enlaces_de_pagina(page: Page) -> List[Dict[str, str]]:
+    # ... (lógica de extracción de enlaces de una página) ...
+    return [] # Placeholder
+def buscar_en_dof_con_paginacion(termino_busqueda: str, nombre_archivo_csv: str, max_urls_a_recolectar: int):
+    # ... (lógica principal con bucle while para paginación, uso de extraer_enlaces_de_pagina, guardado en CSV) ...
+if __name__ == "__main__":
+    # ... (configuración de término, nombre de archivo, max_urls) ...
+    # buscar_en_dof_con_paginacion(termino_busqueda_main, nombre_archivo_main, max_urls_main)
+    print("Simulación de 003_dof_web_scraper_next.py ejecutado.") # Simulación para brevedad
+            </code></pre>
+            <button class="explain-code-btn code-action-button">
+                <span class="icon">📄</span> Ver Explicación Conceptual del Script 3
+            </button>
+        </div>
+        <div class="code-explanation-panel">
+            <button class="panel-close-btn" aria-label="Cerrar explicación">&times;</button>
+            <h4 class="text-xl font-semibold mb-4 mt-2 text-sky-700">Script 3: <code>003_dof_web_scraper_next.py</code></h4>
+            <h3>🎯 Propósito General (Conceptual):</h3>
+            <p>Recolecta URLs del DOF, manejando la paginación para obtener múltiples resultados y guardarlos en un CSV.</p>
+            <h3>🤔 ¿Qué Hace Exactamente (Conceptual)?</h3>
+            <p>Evoluciona el scraper anterior añadiendo la capacidad de manejar la paginación, haciendo clic en "Siguiente Página" hasta alcanzar un límite o no encontrar más páginas.</p>
+            <h3>💡 Conceptos Clave a Explorar:</h3>
+            <ul class="concept-list">
+                <li>Manejo de Paginación en Web Scraping</li>
+                <li>Localizadores Avanzados (Playwright Locators, <code>:has()</code>)</li>
+                <li>Bucles de Navegación y Condiciones de Parada</li>
+                <li>Gestión de Estado (<code>urls_ya_vistas</code>)</li>
+                <li>Almacenamiento en CSV (<code>csv.DictWriter</code>)</li>
+                <li>User-Agent Spoofing</li>
+            </ul>
+            <h4 class="text-xl font-semibold mb-4 mt-2 text-sky-700">Explicación Detallada del Script 3:</h4>
+            <div class="explanation-text space-y-3">
+                <p>Este script evoluciona el scraper anterior añadiendo la capacidad de manejar la paginación...</p> </div>
+        </div>
+        <div class="exercise">
+            <h3>🚀 ¡A Programar!</h3>
+            <p>Ejecuta <code>python 003_dof_web_scraper_next.py</code>. Revisa el <code>resultados_dof_paginado.csv</code>. ¿Cuántas URLs se recolectaron? (El script está configurado para 50 por defecto, puedes cambiarlo).</p>
+        </div>
+    </div>
+    
+    <div id="script4-exec" class="slide">
+        <h3><span class="emoji-title">📑</span> 3.3 Ejecutando Script 4: Extracción de Contenido (<code>004_procesar_urls_dof.py</code>)</h3>
+        <p>Lee <code>resultados_dof_paginado.csv</code> y guarda el texto de cada URL en archivos <code>.txt</code> en la carpeta <code>decreto_colectados</code>.</p>
+        <pre><code class="language-bash">python 004_procesar_urls_dof.py</code></pre>
+        
+        <div class="tutorial-section">
+            <h3>Salida Esperada:</h3>
+            <p>Logs de cada URL procesada. Se creará la carpeta <code>decreto_colectados/</code> con archivos <code>.txt</code>.</p>
+            <h3>Insight:</h3>
+            <p>Visitamos cada página de decreto para obtener su contenido. El retardo aleatorio es para ser amables con el servidor del DOF.</p>
+        </div>
+
+        <div class="mt-4">
+            <h4>💻 El Código (Resumen):</h4>
+            <pre><code class="language-python">
+import csv, os, re, time, random
+from playwright.sync_api import sync_playwright, Page
+# ... (typing imports) ...
+# ... (Constantes: SELECTOR_CONTENIDO_NOTA, DELAYS) ...
+def sanitizar_nombre(nombre: str, es_carpeta=False) -> str:
+    # ... (lógica de sanitizar) ...
+    return "nombre_sanitizado" # Placeholder
+def extraer_contenido_de_nota(page: Page, url: str) -> Optional[str]:
+    # ... (lógica de ir a URL y extraer texto de SELECTOR_CONTENIDO_NOTA) ...
+    return "Contenido de ejemplo." # Placeholder
+def procesar_urls_y_guardar_contenido(archivo_csv_entrada: str, termino_busqueda_original: str):
+    # ... (lógica de leer CSV, crear carpeta, iterar URLs, llamar a extraer_contenido_de_nota, guardar en .txt con retardo) ...
+if __name__ == "__main__":
+    # ... (configuración de archivos y término) ...
+    # procesar_urls_y_guardar_contenido(archivo_csv_con_urls, termino_busqueda_usado)
+    print("Simulación de 004_procesar_urls_dof.py ejecutado.") # Simulación
+            </code></pre>
+            <button class="explain-code-btn code-action-button">
+                <span class="icon">📄</span> Ver Explicación Conceptual del Script 4
+            </button>
+        </div>
+        <div class="code-explanation-panel">
+            <button class="panel-close-btn" aria-label="Cerrar explicación">&times;</button>
+            <h4 class="text-xl font-semibold mb-4 mt-2 text-sky-700">Script 4: <code>004_procesar_urls_dof.py</code></h4>
+             <h3>🎯 Propósito General (Conceptual):</h3>
+            <p>Visita cada URL recolectada del CSV y guarda el contenido textual completo de la nota del DOF en archivos .txt individuales.</p>
+            <h3>🤔 ¿Qué Hace Exactamente (Conceptual)?</h3>
+            <p>Toma el CSV de URLs, navega a cada una, extrae el contenido textual principal y lo guarda en un archivo .txt individual, en una carpeta nombrada según el término de búsqueda original.</p>
+            <h3>💡 Conceptos Clave a Explorar:</h3>
+            <ul class="concept-list">
+                <li>Procesamiento de Datos en Pipeline</li>
+                <li>Lectura de Archivos CSV (<code>csv.DictReader</code>)</li>
+                <li>Extracción de Contenido Específico</li>
+                <li>Sanitización de Nombres de Archivo/Carpeta</li>
+                <li>Operaciones de Sistema de Archivos</li>
+                <li>Web Scraping Ético (retardos)</li>
+            </ul>
+            <h4 class="text-xl font-semibold mb-4 mt-2 text-sky-700">Explicación Detallada del Script 4:</h4>
+            <div class="explanation-text space-y-3">
+                <p>Este script toma el CSV de URLs del paso anterior. Para cada URL, navega a la página de detalle de la nota del DOF...</p> </div>
+        </div>
+        <div class="exercise">
+            <h3>🚀 ¡A Programar!</h3>
+            <p>Ejecuta <code>python 004_procesar_urls_dof.py</code>. Revisa la carpeta <code>decreto_colectados/</code>. Abre algunos archivos <code>.txt</code>. ¿El contenido es el esperado?</p>
+        </div>
+    </div>
+
+    <div id="script5-exec" class="slide">
+        <h3><span class="emoji-title">✍️</span> 3.4 Ejecutando Script 5: Generación de Resúmenes (<code>005_generar_resumenes_dof.py</code>)</h3>
+        <p>Lee <code>decreto_colectados/</code>, envía contenido a Groq (<code>meta-llama/Llama-4-Scout</code>) y guarda resúmenes en <code>decreto_colectados_resumen/</code>.</p>
+        <pre><code class="language-bash">python 005_generar_resumenes_dof.py</code></pre>
+        
+        <div class="tutorial-section">
+            <h3>Salida Esperada:</h3>
+            <p>Logs de conexión a Groq, procesamiento, tokens, pausas. Se creará <code>decreto_colectados_resumen/</code>.</p>
+            <h3>Insight:</h3>
+            <p>¡Primera interacción con un LLM potente! Convertimos documentos largos en resúmenes. La gestión de límites de API es crucial.</p>
+        </div>
+
+        <div class="mt-4">
+            <h4>💻 El Código (Resumen):</h4>
+            <pre><code class="language-python">
+import os, re, time, tiktoken, shutil
+from groq import Groq
+from dotenv import load_dotenv
+# ... (typing imports) ...
+# ... (Constantes: MODELO_GROQ, LÍMITES API, etc.) ...
+# ... (Variables globales para límites API) ...
+def generar_resumen_con_groq(cliente_groq: Groq, texto_documento: str) -> Optional[str]:
+    # ... (lógica de prompt, llamada a API Groq con manejo de límites y reintentos) ...
+    return "Resumen de ejemplo por IA." # Placeholder
+def procesar_documentos_para_resumen(carpeta_textos_entrada: str, termino_busqueda_original: str):
+    # ... (lógica de iterar .txt, leer, truncar, llamar a generar_resumen_con_groq, guardar resumen) ...
+if __name__ == "__main__":
+    # ... (configuración de término y carpetas) ...
+    # procesar_documentos_para_resumen(carpeta_textos_entrada_main, termino_busqueda_original_main)
+    print("Simulación de 005_generar_resumenes_dof.py ejecutado.") # Simulación
+            </code></pre>
+            <button class="explain-code-btn code-action-button">
+                <span class="icon">📄</span> Ver Explicación Conceptual del Script 5
+            </button>
+        </div>
+        <div class="code-explanation-panel">
+            <button class="panel-close-btn" aria-label="Cerrar explicación">&times;</button>
+            <h4 class="text-xl font-semibold mb-4 mt-2 text-sky-700">Script 5: <code>005_generar_resumenes_dof.py</code></h4>
+            <h3>🎯 Propósito General (Conceptual):</h3>
+            <p>Lee los archivos .txt de contenido completo y utiliza la API de Groq para generar un resumen de cada documento.</p>
+            <h3>🤔 ¿Qué Hace Exactamente (Conceptual)?</h3>
+            <p>Toma los archivos de texto, los trunca si es necesario, construye un prompt y los envía a un LLM vía Groq para resumir. Guarda los resúmenes.</p>
+            <h3>💡 Conceptos Clave a Explorar:</h3>
+            <ul class="concept-list">
+                <li>Modelos de Lenguaje Grandes (LLMs)</li>
+                <li>APIs de LLMs (Groq)</li>
+                <li>Ingeniería de Prompts para Resúmenes</li>
+                <li>Tokenización para LLMs (<code>tiktoken</code>), Límites de Contexto</li>
+                <li>Manejo de Límites de API (Rate Limiting)</li>
+                <li>Variables de Entorno (<code>python-dotenv</code>)</li>
+            </ul>
+            <h4 class="text-xl font-semibold mb-4 mt-2 text-sky-700">Explicación Detallada del Script 5:</h4>
+            <div class="explanation-text space-y-3">
+                <p>Toma los archivos de texto completos y emplea un Modelo de Lenguaje Grande (LLM) a través de la API de Groq...</p> </div>
+        </div>
+        <div class="exercise">
+            <h3>🚀 ¡A Programar!</h3>
+            <p>Ejecuta <code>python 005_generar_resumenes_dof.py</code>. Revisa la carpeta <code>decreto_colectados_resumen/</code>. Compara los resúmenes con los originales. ¿Son buenos?</p>
+        </div>
+    </div>
+
+    <div id="script6-exec" class="slide">
+        <h3><span class="emoji-title">🔢</span> 3.5 Ejecutando Script 6: Conteo de Tokens (<code>006_contar_tokens_dof.py</code>)</h3>
+        <p>Analizará <code>decreto_colectados/</code> y contará tokens.</p>
+        <pre><code class="language-bash">python 006_contar_tokens_dof.py</code></pre>
+        
+        <div class="tutorial-section">
+            <h3>Salida Esperada:</h3>
+            <p>Logs de procesamiento y conteo. Se creará un CSV (ej. <code>conteo_tokens_openai_decreto_cl100k_base.csv</code>).</p>
+            <h3>Insight:</h3>
+            <p>Entender los tokens es fundamental para trabajar con LLMs (costos, límites de texto).</p>
+        </div>
+
+        <div class="mt-4">
+            <h4>💻 El Código (Resumen):</h4>
+            <pre><code class="language-python">
+import os, csv, re, tiktoken
+# ... (funciones: sanitizar_nombre, limpiar_nombre_para_documento, contar_tokens_openai, contar_tokens_en_archivo_openai) ...
+def generar_csv_conteo_tokens_openai(carpeta_textos: str, archivo_csv_salida: str, modelo_encoding: str = "cl100k_base"):
+    # ... (lógica de iterar .txt, llamar a contar_tokens_en_archivo_openai, escribir CSV) ...
+if __name__ == "__main__":
+    # ... (configuración de término, carpetas, encoding, nombre de CSV) ...
+    # generar_csv_conteo_tokens_openai(ruta_carpeta_documentos, nombre_archivo_csv_salida, encoding_modelo_openai)
+    print("Simulación de 006_contar_tokens_dof.py ejecutado.") # Simulación
+            </code></pre>
+            <button class="explain-code-btn code-action-button">
+                <span class="icon">📄</span> Ver Explicación Conceptual del Script 6
+            </button>
+        </div>
+        <div class="code-explanation-panel">
+            <button class="panel-close-btn" aria-label="Cerrar explicación">&times;</button>
+            <h4 class="text-xl font-semibold mb-4 mt-2 text-sky-700">Script 6: <code>006_contar_tokens_dof.py</code></h4>
+            <h3>🎯 Propósito General (Conceptual):</h3>
+            <p>Analiza archivos de texto y cuenta tokens usando tiktoken (método OpenAI).</p>
+            <h3>🤔 ¿Qué Hace Exactamente (Conceptual)?</h3>
+            <p>Lee archivos .txt, extrae contenido principal y cuenta tokens. Guarda resultados en CSV.</p>
+            <h3>💡 Conceptos Clave a Explorar:</h3>
+            <ul class="concept-list">
+                <li>Tokenización (específica de OpenAI/tiktoken)</li>
+                <li>Encodings de <code>tiktoken</code> (<code>cl100k_base</code>)</li>
+                <li>Análisis de Corpus de Texto</li>
+                <li>Estimación de Uso de API basada en Tokens</li>
+            </ul>
+            <h4 class="text-xl font-semibold mb-4 mt-2 text-sky-700">Explicación Detallada del Script 6:</h4>
+            <div class="explanation-text space-y-3">
+                <p>Este script es una utilidad para cuantificar el tamaño de los documentos (originales o resúmenes) en términos de tokens...</p> </div>
+        </div>
+        <div class="exercise">
+            <h3>🚀 ¡A Programar!</h3>
+            <p>Ejecuta <code>python 006_contar_tokens_dof.py</code>. Revisa el CSV. ¿Cuántos tokens tienen tus documentos?</p>
+        </div>
+    </div>
+    
+    <div id="script7-exec" class="slide">
+        <h3><span class="emoji-title">🧠</span> 3.6 Ejecutando Script 7: Creación de BD Vectorial (<code>007_crear_bd_lancedb_dof.py</code>)</h3>
+        <p>Toma <code>decreto_colectados/</code>, fragmenta, genera embeddings (Ollama <code>bge-m3</code>) y almacena en LanceDB (<code>lancedb_store_bge_m3/</code>).</p>
+        <pre><code class="language-bash">python 007_crear_bd_lancedb_dof.py</code></pre>
+        
+        <div class="tutorial-section">
+            <h3>Salida Esperada:</h3>
+            <p>Logs de procesamiento, fragmentación, embeddings, adición a LanceDB y creación de índice.</p>
+            <h3>Insight:</h3>
+            <p>Construimos el "cerebro" del RAG. LanceDB almacenará "huellas digitales" (embeddings) para búsquedas semánticas. Puede tardar un poco.</p>
+        </div>
+
+        <div class="mt-4">
+            <h4>💻 El Código (Resumen):</h4>
+            <pre><code class="language-python">
+import os, re, time, lancedb, ollama, tiktoken, numpy as np, hashlib
+from lancedb.pydantic import LanceModel, Vector as LanceVector
+# ... (typing imports) ...
+# ... (Constantes: MODELO_EMBEDDING_OLLAMA, CHUNK_SIZE, etc.) ...
+def crear_base_de_datos_lance(carpeta_documentos_txt: str, nombre_tabla_lancedb: str, directorio_bd_lance: str):
+    # ... (lógica de conexión a LanceDB, definición de esquema LanceModel, 
+    # iterar archivos, fragmentar, obtener_embedding_ollama_para_bd, añadir a tabla, crear índice) ...
+if __name__ == "__main__":
+    # ... (configuración de término, carpetas, nombre de tabla, directorio LanceDB) ...
+    # crear_base_de_datos_lance(ruta_carpeta_textos_completa, nombre_tabla_db, directorio_bd_lance=directorio_lance)
+    print("Simulación de 007_crear_bd_lancedb_dof.py ejecutado.") # Simulación
+            </code></pre>
+            <button class="explain-code-btn code-action-button">
+                <span class="icon">📄</span> Ver Explicación Conceptual del Script 7
+            </button>
+        </div>
+        <div class="code-explanation-panel">
+            <button class="panel-close-btn" aria-label="Cerrar explicación">&times;</button>
+            <h4 class="text-xl font-semibold mb-4 mt-2 text-sky-700">Script 7: <code>007_crear_bd_lancedb_dof.py</code></h4>
+            <h3>🎯 Propósito General (Conceptual):</h3>
+            <p>Crea la base de datos vectorial en LanceDB con embeddings (Ollama bge-m3) de fragmentos de documentos.</p>
+            <h3>🤔 ¿Qué Hace Exactamente (Conceptual)?</h3>
+            <p>Toma textos, los fragmenta, genera embeddings para cada fragmento y los almacena en LanceDB. Define un esquema y crea un índice.</p>
+            <h3>💡 Conceptos Clave a Explorar:</h3>
+            <ul class="concept-list">
+                <li>Embeddings de Texto (bge-m3)</li>
+                <li>Ollama (servicio local de modelos)</li>
+                <li>Bases de Datos Vectoriales (LanceDB)</li>
+                <li>Fragmentación (Chunking) y Superposición (Overlap)</li>
+                <li>Esquemas en LanceDB (<code>LanceModel</code>)</li>
+                <li>Indexación Vectorial (IVF_PQ)</li>
+            </ul>
+            <h4 class="text-xl font-semibold mb-4 mt-2 text-sky-700">Explicación Detallada del Script 7:</h4>
+            <div class="explanation-text space-y-3">
+                <p>Este script es crucial para la fase de recuperación del RAG. Toma los textos completos de los documentos, los fragmenta...</p> </div>
+        </div>
+        <div class="exercise">
+            <h3>🚀 ¡A Programar!</h3>
+            <p>Ejecuta <code>python 007_crear_bd_lancedb_dof.py</code>. Observa la creación de la carpeta <code>lancedb_store_bge_m3/</code>. ¡Paciencia!</p>
+        </div>
+    </div>
+
+    <div id="script8-exec" class="slide">
+        <h3><span class="emoji-title">🗣️</span> 3.7 Ejecutando Script 8: Consulta de Prueba a LanceDB (<code>008_consultar_bd_lancedb_terminal.py</code>)</h3>
+        <p>Permite hacer preguntas a LanceDB para ver qué fragmentos recupera, sin el LLM de Groq.</p>
+        <pre><code class="language-bash">python 008_consultar_bd_lancedb_terminal.py</code></pre>
+        
+        <div class="tutorial-section">
+            <h3>Funcionamiento:</h3>
+            <p>Te pedirá una pregunta. Escribe algo sobre "decreto" (ej. "¿Qué decretos hablan de energía?"). Te mostrará fragmentos similares. Escribe <code>salir</code> para terminar.</p>
+            <h3>Insight:</h3>
+            <p>Prueba la recuperación antes de involucrar al LLM generador. ¿Los fragmentos tienen sentido?</p>
+        </div>
+
+        <div class="mt-4">
+            <h4>💻 El Código (Resumen):</h4>
+            <pre><code class="language-python">
+import os, re, lancedb, ollama, numpy as np
+# ... (typing imports) ...
+# ... (Constantes: MODELO_EMBEDDING_OLLAMA, NUM_FRAGMENTOS_A_RECUPERAR) ...
+def buscar_fragmentos_similares_lance(db_path: str, table_name: str, pregunta_texto: str, k: int) -> List[Dict]:
+    # ... (lógica de conectar a LanceDB, obtener embedding de pregunta, buscar y devolver resultados) ...
+    return [{"texto": "Fragmento de ejemplo recuperado", "_distance": 0.1}] # Placeholder
+if __name__ == "__main__":
+    # ... (configuración de término, directorio BD, nombre de tabla) ...
+    # ... (bucle while para input de usuario y llamada a buscar_fragmentos_similares_lance) ...
+    print("Simulación de 008_consultar_bd_lancedb_terminal.py ejecutado.") # Simulación
+            </code></pre>
+            <button class="explain-code-btn code-action-button">
+                <span class="icon">📄</span> Ver Explicación Conceptual del Script 8
+            </button>
+        </div>
+        <div class="code-explanation-panel">
+            <button class="panel-close-btn" aria-label="Cerrar explicación">&times;</button>
+            <h4 class="text-xl font-semibold mb-4 mt-2 text-sky-700">Script 8: <code>008_consultar_bd_lancedb_terminal.py</code></h4>
+            <h3>🎯 Propósito General (Conceptual):</h3>
+            <p>Aplicación de terminal para probar la recuperación de LanceDB (solo embeddings).</p>
+            <h3>🤔 ¿Qué Hace Exactamente (Conceptual)?</h3>
+            <p>El usuario ingresa una pregunta, se genera su embedding, y se buscan los fragmentos más similares en LanceDB. Muestra los fragmentos recuperados.</p>
+            <h3>💡 Conceptos Clave a Explorar:</h3>
+            <ul class="concept-list">
+                <li>Búsqueda por Similitud Vectorial (Aplicada)</li>
+                <li>Interpretación de Distancia/Similitud</li>
+                <li>Fase de Recuperación en RAG</li>
+                <li>Desarrollo de CLI para Pruebas</li>
+            </ul>
+            <h4 class="text-xl font-semibold mb-4 mt-2 text-sky-700">Explicación Detallada del Script 8:</h4>
+            <div class="explanation-text space-y-3">
+                <p>Proporciona una interfaz de línea de comandos para interactuar con la base de datos LanceDB...</p> </div>
+        </div>
+        <div class="exercise">
+            <h3>🚀 ¡A Programar!</h3>
+            <p>Ejecuta <code>python 008_consultar_bd_lancedb_terminal.py</code>. Haz preguntas. ¿Los fragmentos recuperados son relevantes?</p>
+        </div>
+    </div>
+
+    <div id="script9-exec" class="slide">
+        <h3><span class="emoji-title">🏆</span> 3.8 Ejecutando Script 9: Aplicación RAG Completa (<code>009_rag_dof_ollama_groq_deepseek.py</code>)</h3>
+        <p>¡El gran final! Combina todo: pregunta, búsqueda en LanceDB (Ollama), y generación de respuesta con Groq (Deepseek).</p>
+        <pre><code class="language-bash">python 009_rag_dof_ollama_groq_deepseek.py</code></pre>
+        
+        <div class="tutorial-section">
+            <h3>Funcionamiento:</h3>
+            <ol class="list-decimal list-inside ml-4">
+                <li>Pide una pregunta.</li>
+                <li>Genera embedding de pregunta.</li>
+                <li>Busca fragmentos relevantes en LanceDB.</li>
+                <li>Recupera resúmenes pre-generados.</li>
+                <li><strong>Muestra el PROMPT COMPLETO enviado a Groq.</strong></li>
+                <li>Envía contexto enriquecido a Groq.</li>
+                <li>Muestra respuesta del LLM.</li>
+                <li>Muestra fragmentos originales usados.</li>
+                <li>Repite hasta `salir`.</li>
+            </ol>
+            <h3>Insight:</h3>
+            <p>¡RAG en acción! Observa cómo la calidad de fragmentos/resúmenes influye en la respuesta. Experimenta.</p>
+        </div>
+
+        <div class="mt-4">
+            <h4>💻 El Código (Resumen):</h4>
+            <pre><code class="language-python">
+import os, re, time, json, numpy as np, ollama, lancedb, tiktoken
+from groq import Groq
+from dotenv import load_dotenv
+# ... (typing imports) ...
+# ... (Constantes: MODELOS, LÍMITES API, etc.) ...
+# ... (Variables globales para límites API Groq) ...
+def generar_respuesta_con_rag_groq(cliente_groq: Groq, pregunta_usuario: str, documentos_contexto: List[Dict[str, any]], carpeta_resumenes: str) -> Tuple[Optional[str], int]:
+    # ... (lógica de construir contexto con fragmentos y resúmenes, crear prompt completo, llamar a API Groq con manejo de límites) ...
+    return "Respuesta de ejemplo del sistema RAG.", 500 # Placeholder
+if __name__ == "__main__":
+    # ... (configuración inicial, verificación de API Key, carpetas, conexión a LanceDB) ...
+    # ... (bucle while para input, llamada a buscar_fragmentos_similares_lance, llamada a generar_respuesta_con_rag_groq, mostrar resultados) ...
+    print("Simulación de 009_rag_dof_ollama_groq_deepseek.py ejecutado.") # Simulación
+            </code></pre>
+            <button class="explain-code-btn code-action-button">
+                <span class="icon">📄</span> Ver Explicación Conceptual del Script 9
+            </button>
+        </div>
+        <div class="code-explanation-panel">
+            <button class="panel-close-btn" aria-label="Cerrar explicación">&times;</button>
+            <h4 class="text-xl font-semibold mb-4 mt-2 text-sky-700">Script 9: <code>009_rag_dof_ollama_groq_deepseek.py</code></h4>
+            <h3>🎯 Propósito General (Conceptual):</h3>
+            <p>Aplicación RAG completa: recupera de LanceDB y genera respuesta con Groq (Deepseek).</p>
+            <h3>🤔 ¿Qué Hace Exactamente (Conceptual)?</h3>
+            <p>Implementa el pipeline RAG: pregunta -> embedding -> búsqueda en LanceDB -> recuperación de resúmenes -> contexto enriquecido -> prompt a LLM (Groq) -> respuesta.</p>
+            <h3>💡 Conceptos Clave a Explorar:</h3>
+            <ul class="concept-list">
+                <li>Pipeline RAG Completo (Integración)</li>
+                <li>Enriquecimiento del Contexto</li>
+                <li>Construcción Avanzada de Prompts para RAG</li>
+                <li>Generación de Respuestas Basadas en Evidencia</li>
+                <li>Presentación de Fuentes al Usuario</li>
+            </ul>
+            <h4 class="text-xl font-semibold mb-4 mt-2 text-sky-700">Explicación Detallada del Script 9:</h4>
+            <div class="explanation-text space-y-3">
+                <p>Script final que implementa el pipeline RAG completo. Una pregunta del usuario se convierte en embedding...</p> </div>
+        </div>
+        <div class="exercise">
+            <h3>🚀 ¡A Programar!</h3>
+            <p>Ejecuta <code>python 009_rag_dof_ollama_groq_deepseek.py</code>. Haz preguntas. Analiza la respuesta, el prompt y los fragmentos. ¡Experimenta!</p>
+        </div>
+    </div>
+
+    <div class="slide text-center">
+        <h2>🎉 ¡Felicidades! 🎉</h2>
+        <p>Si has llegado hasta aquí, has construido y ejecutado un pipeline RAG completo. Has pasado por:</p>
+        <ul class="list-disc list-inside inline-block text-left my-4">
+            <li>Configuración de entorno y APIs.</li>
+            <li>Web scraping con Playwright.</li>
+            <li>Procesamiento de texto.</li>
+            <li>Generación de resúmenes con LLMs (Groq).</li>
+            <li>Creación de embeddings y bases de datos vectoriales (Ollama y LanceDB).</li>
+            <li>Implementación de un sistema de Pregunta-Respuesta aumentado por recuperación.</li>
+        </ul>
+        <p>Este es un proyecto complejo con muchos componentes móviles. ¡Siéntete orgulloso de lo que has logrado y aprendido! Ahora puedes experimentar, modificar los prompts, probar diferentes modelos, o aplicar este conocimiento a otros dominios de información.</p>
+        <p class="mt-4">👨‍💻👩‍💻 ¡A seguir explorando el fascinante mundo de la IA! 🤓</p>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const explainButtons = document.querySelectorAll('.explain-code-btn');
+            const closeButtons = document.querySelectorAll('.panel-close-btn'); // Updated class name
+
+            explainButtons.forEach(button => {
+                button.addEventListener('click', (event) => {
+                    const slide = event.target.closest('.slide');
+                    if (slide) {
+                        // Close any other active panels first
+                        document.querySelectorAll('.code-explanation-panel.active').forEach(activePanel => {
+                            if (activePanel !== slide.querySelector('.code-explanation-panel')) {
+                                activePanel.classList.remove('active');
+                            }
+                        });
+                        // Then open the current one
+                        const panel = slide.querySelector('.code-explanation-panel');
+                        if (panel) {
+                            panel.classList.add('active');
+                        }
+                    }
+                });
+            });
+
+            closeButtons.forEach(button => {
+                button.addEventListener('click', (event) => {
+                    const panel = event.target.closest('.code-explanation-panel');
+                    if (panel) {
+                        panel.classList.remove('active');
+                    }
+                });
+            });
+        });
+    </script>
+
+</body>
+</html>
